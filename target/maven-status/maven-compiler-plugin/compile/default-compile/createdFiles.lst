@@ -1,0 +1,3 @@
+com\rogers\mock\controller\AuthController.class
+com\rogers\mock\controller\DeviceController.class
+com\rogers\mock\AipMockApiApplication.class
