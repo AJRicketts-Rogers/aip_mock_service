@@ -1,3 +1,6 @@
 com\rogers\mock\controller\AuthController.class
+com\rogers\mock\model\AIPRecord.class
 com\rogers\mock\controller\DeviceController.class
+com\rogers\mock\repository\AIPRepository$1.class
+com\rogers\mock\repository\AIPRepository.class
 com\rogers\mock\AipMockApiApplication.class
