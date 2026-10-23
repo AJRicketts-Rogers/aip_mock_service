@@ -73,6 +73,11 @@ public class DeviceController {
 		
 			    return badRequest("400", "unbindModem, account=" + accountNumber + " does not exist");
 			}
+			
+			if (record.getStatus().equals("RESERVED_WAIT_FOR_DEVICE")) {
+		
+			    return badRequest("400", "unbindModem, account=" + accountNumber + " is not ACTIVE, already in RESERVED_WAIT_FOR_DEVICE status");
+			}
 		
 			if (!macAddress.equalsIgnoreCase(record.getMacAddress())) {
 		
@@ -83,6 +88,8 @@ public class DeviceController {
 			record.setMacAddress("");
 		
 			repository.save(record);
+			
+			return ResponseEntity.ok(buildResponse(request, "RESERVED_WAIT_FOR_DEVICE", "200", "Success"));
 
 	    case "equipSwap":
 
@@ -104,6 +111,8 @@ public class DeviceController {
 			record.setMacAddress(macAddress);
 		
 			repository.save(record);
+			
+			return ResponseEntity.ok(buildResponse(request, "ACTIVE", "200", "Success"));
 	
 	    case "changeOwner":
 
@@ -126,6 +135,8 @@ public class DeviceController {
 		
 			repository.delete(oldAccount);
 			repository.save(oldRecord);
+			
+			return ResponseEntity.ok(buildResponse(request, "ACTIVE", "200", "Success"));
 
 	    default:
 	        return badRequest("400", "Unknown operation: " + operation);
