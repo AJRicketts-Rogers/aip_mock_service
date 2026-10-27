@@ -31,6 +31,7 @@ public class DeviceController {
 	    String accountNumber = getString(request, "accountNumber");
 	    String macAddress = getString(request, "macAddress");
 	    AIPRecord record;
+	    ResponseEntity<Map<String, Object>> response;
 
 	    switch (operation) {
 
@@ -39,15 +40,18 @@ public class DeviceController {
 	    	AIPRecord macRecord = repository.findByMac(macAddress);
 
 			if (macRecord != null && !accountNumber.equals(macRecord.getAccountNumber())) {
-		
-			    return badRequest("400", "bindModem, macAddress=" + macAddress + " is already assigned to another account");
+				response = badRequest("400", "bindModem, macAddress=" + macAddress 
+						+ " is already assigned to another account");
+				logResponse(operation, transactionId, response.getBody());
+			    return response;
 			}
 		
 			AIPRecord existing = repository.get(accountNumber);
 		
 			if (existing != null && "ACTIVE".equals(existing.getStatus())) {
-		
-			    return badRequest("400", "bindModem, account=" + accountNumber + " is already ACTIVE");
+				response = badRequest("400", "bindModem, account=" + accountNumber + " is already ACTIVE");
+				logResponse(operation, transactionId, response.getBody());
+			    return response;
 			}
 		
 			record = existing == null ? new AIPRecord() : existing;
@@ -64,24 +68,29 @@ public class DeviceController {
 		
 			repository.save(record);
 		
-			return ResponseEntity.ok(buildResponse(request, "ACTIVE", "200", "Success"));
+			response = ResponseEntity.ok(buildResponse(request, "ACTIVE", "200", "Success"));
+			logResponse(operation, transactionId, response.getBody());
+			return response;
 
 	    case "unbindModem":
 	    	record = repository.get(accountNumber);
 
 			if (record == null) {
-		
-			    return badRequest("400", "unbindModem, account=" + accountNumber + " does not exist");
+				response = badRequest("400", "unbindModem, account=" + accountNumber + " does not exist");
+				logResponse(operation, transactionId, response.getBody());
+			    return response;
 			}
 			
 			if (record.getStatus().equals("RESERVED_WAIT_FOR_DEVICE")) {
-		
-			    return badRequest("400", "unbindModem, account=" + accountNumber + " is not ACTIVE, already in RESERVED_WAIT_FOR_DEVICE status");
+				response = badRequest("400", "unbindModem, account=" + accountNumber + " is not ACTIVE, already in RESERVED_WAIT_FOR_DEVICE status");
+				logResponse(operation, transactionId, response.getBody());
+			    return response;
 			}
 		
 			if (!macAddress.equalsIgnoreCase(record.getMacAddress())) {
-		
-			    return badRequest("400", "unbindModem, macAddress=" + macAddress + " is not associated to specified account");
+				response = badRequest("400", "unbindModem, macAddress=" + macAddress + " is not associated to specified account");
+				logResponse(operation, transactionId, response.getBody());
+			    return response;
 			}
 		
 			record.setStatus("RESERVED_WAIT_FOR_DEVICE");
@@ -89,7 +98,9 @@ public class DeviceController {
 		
 			repository.save(record);
 			
-			return ResponseEntity.ok(buildResponse(request, "RESERVED_WAIT_FOR_DEVICE", "200", "Success"));
+			response = ResponseEntity.ok(buildResponse(request, "ACTIVE", "200", "Success"));
+			logResponse(operation, transactionId, response.getBody());
+			return response;
 
 	    case "equipSwap":
 
@@ -97,22 +108,26 @@ public class DeviceController {
 	        repository.get(accountNumber);
 
 			if (record == null || !"ACTIVE".equals(record.getStatus())) {
-		
-			    return badRequest("400", "equipSwap, account=" + accountNumber + " is not ACTIVE status");
+				response = badRequest("400", "equipSwap, account=" + accountNumber + " is not ACTIVE status");
+				logResponse(operation, transactionId, response.getBody());
+			    return response;
 			}
 		
 			String oldMac = getString(request, "oldMacAddress");
 		
 			if (!oldMac.equalsIgnoreCase(record.getMacAddress())) {
-		
-			    return badRequest("400", "equipSwap, macAddress=" + oldMac + " is not associated to specified account");
+				response = badRequest("400", "equipSwap, macAddress=" + oldMac + " is not associated to specified account");
+				logResponse(operation, transactionId, response.getBody());
+			    return response;
 			}
 		
 			record.setMacAddress(macAddress);
 		
 			repository.save(record);
 			
-			return ResponseEntity.ok(buildResponse(request, "ACTIVE", "200", "Success"));
+			response = ResponseEntity.ok(buildResponse(request, "ACTIVE", "200", "Success"));
+			logResponse(operation, transactionId, response.getBody());
+			return response;
 	
 	    case "changeOwner":
 
@@ -121,13 +136,15 @@ public class DeviceController {
 			AIPRecord oldRecord = repository.get(oldAccount);
 		
 			if (oldRecord == null || !"ACTIVE".equals(oldRecord.getStatus())) {
-		
-			    return badRequest("400", "changeOwner, account=" + oldAccount + " not in ACTIVE status");
+				response = badRequest("400", "changeOwner, account=" + oldAccount + " not in ACTIVE status");
+				logResponse(operation, transactionId, response.getBody());
+			    return response;
 			}
 		
 			if (repository.exists(accountNumber)) {
-		
-			    return badRequest("400", "changeOwner, account=" + accountNumber + " already exists");
+				response = badRequest("400", "changeOwner, account=" + accountNumber + " already exists");
+				logResponse(operation, transactionId, response.getBody());
+			    return response;
 			}
 		
 			oldRecord.setAccountNumber(accountNumber);
@@ -136,10 +153,14 @@ public class DeviceController {
 			repository.delete(oldAccount);
 			repository.save(oldRecord);
 			
-			return ResponseEntity.ok(buildResponse(request, "ACTIVE", "200", "Success"));
+			response = ResponseEntity.ok(buildResponse(request, "ACTIVE", "200", "Success"));
+			logResponse(operation, transactionId, response.getBody());
+			return response;
 
 	    default:
-	        return badRequest("400", "Unknown operation: " + operation);
+			response = badRequest("400", "Unknown operation: " + operation);
+			logResponse(operation, transactionId, response.getBody());
+		    return response;
 	    }
 	}
 
@@ -205,6 +226,14 @@ public class DeviceController {
         System.out.println("TransactionId: " + transactionId);
         System.out.println("Body: " + request);
         System.out.println();
+    }
+    private void logResponse(String operation, String transactionId, Map<String, Object> response) {
+    	
+    	System.out.println();
+    	System.out.println(operation + " RESPONSE");
+    	System.out.println("TransactionId: " + transactionId);
+    	System.out.println("Response: " + response);
+    	System.out.println();
     }
 
     private String getString(Map<String, Object> request, String key) {
